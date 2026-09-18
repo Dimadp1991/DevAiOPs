@@ -1,0 +1,17 @@
+# Large Air-Gap Archives & Binaries
+*.tar
+*.zip
+*.tgz
+*.gz
+
+# Operating System / IDE Junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Local logs and temporary outputs
+*.log
+tmp/

@@ -1,0 +1,284 @@
+TODOS for project:
+
+Cases and implement fixes for the cases:
+1. create CrashLoopBackOff example by "failed to pull image"
+
+2.Model malfunction , create erro in code for example push it , new model runs but fails.
+
+3. out of resources model cant start.
+
+
+
+
+AiOPS system:
+	Identify the issue.
+
+	Collect the relevant logs.
+
+	Collect Kubernetes Events.
+
+	Identify the affected component.
+
+	Generate an analysis and action recommendation.
+
+
+
+
+
+RoadMap:
+1. cluster
+2. model deployment , vLLM , use my chart
+	argoCD
+	webhook
+	Gogs or Gitea for Git Version Control (~50–100MB RAM)
+
+	Zot Registry or Distribution (Docker Registry v2) for OCI/Container Storage (~30–50MB RAM)
+
+	maybe jenkins for pipeliene
+
+4.Observability , monitoring
+3. ai Ops application (Fast API) maybe Flask UI
+
+{
+  "incident_id": "INC-2026-0917-01",
+  "alert": {
+    "name": "KubePodCrashLooping",
+    "severity": "critical",
+    "summary": "Pod worker-app-7d9b4f98d-x9z2q is restarting repeatedly"
+  },
+  "service_info": {
+    "name": "data-processing-worker",
+    "owner": "DevOps Team",
+    "criticality": "high"
+  },
+  "k8s_state": {
+    "pod_status": "CrashLoopBackOff",
+    "restarts": 12,
+    "deployment_ready_replicas": "1/3",
+    "health_check": "Liveness probe failed: HTTP 500"
+  },
+  "telemetry": {
+    "gpu": {
+      "utilization_pct": 98,
+      "vram_used_mb": 24100,
+      "vram_total_mb": 24576,
+      "xid_errors": [31]
+    },
+    "metrics": {
+      "cpu_usage_cores": 3.8,
+      "memory_rss_bytes": "7.8Gi"
+    },
+    "recent_logs": [
+      "2026-09-17T13:48:10Z CUDA error: out of memory",
+      "2026-09-17T13:48:11Z Fatal python exception: MemoryError"
+    ],
+    "events": [
+      "Warning BackOff 2m ago kubelet Back-off restarting failed container"
+    ]
+  },
+  "knowledge_base": {
+    "runbook": "Runbook-CUDA-OOM: Increase GPU batch size limit or expand memory limit in Helm values.",
+    "historical_incidents": [
+      "INC-2026-0412: Fixed by adjusting batch size parameter in ConfigMap."
+    ]
+  }
+}
+
+
+
+					[ Alertmanager / Incident Trigger ]
+                                  |
+                                  v
+                        [ AI Agent Orchestrator ]
+                                  |
+            +---------------------+---------------------+
+            |                     |                     |
+            v                     v                     v
+   [ FastMCP K8s Tools ]  [ FastMCP Prom/GPU Tools ]  [ Local Vector DB (RAG) ]
+   - get_pod_status()     - query_prometheus()        - search_runbooks()
+   - get_k8s_events()     - get_gpu_metrics()         - get_past_incidents()
+   - fetch_pod_logs()
+
+
+
+# AIOps Data Source & Retrieval Mapping
+
+| Category | Data Field | Source System | Access Method / Query | Output / Data Payload |
+| :---     | :---       | :---          | :---                  | :---                  |
+| Alerting | Alert Details (פרטי ההתראה) | Prometheus Alertmanager | Webhook POST payload or `/api/v2/alerts` | Alert name, severity, firing timestamp, labels, and summary text. |
+| K8s State | Pod Status (מצב ה-Pod) | Kubernetes API (`core/v1`) | `get_namespaced_pod()` | Pod phase (Running/CrashLoopBackOff), restart count, exit codes, and container statuses. |
+| K8s State | Deployment Status (מצב ה-Deployment) | Kubernetes API (`apps/v1`) | `read_namespaced_deployment()` | Desired vs. ready replicas, update strategy, rollouts in progress, and conditions. |
+| K8s State | Kubernetes Events | Kubernetes Event API | `list_namespaced_event()` | Filtered warning events (OOMKills, ImagePullBackOff, NodeHasInsufficientMemory, etc.). |
+| K8s State | Health Checks (תוצאות בדיקות בריאות) | K8s Probes & K8s API | Pod `status.conditions` & Probe logs | Liveness and readiness probe status, failure counts, and last HTTP/TCP probe results. |
+| Telemetry | Recent Logs (לוגים אחרונים) | VictoriaLogs / Grafana Loki / K8s API | `read_namespaced_pod_log()` | Stderr/stdout log tail (100–500 lines) extracted prior to or during the failure window. |
+| Telemetry | Prometheus Metrics (מדדי Prometheus) | Prometheus Server | REST API (`/api/v1/query_range`) | PromQL time-series metrics (CPU utilization, Memory RSS/Usage, Network I/O, error rates). |
+| Hardware | GPU Status (מצב ה-GPU) | DCGM Exporter / NVML | Prometheus metrics / NVML API | GPU utilization %, VRAM allocated/free, power usage, and hardware XID error codes. |
+| Knowledge | Local Runbook (Runbook מקומי) | Vector DB (Qdrant) / Gogs Git | RAG similarity search on Markdown docs | Similarity-matched operational runbook and standard troubleshooting procedures. |
+| Knowledge | Historical Incidents (אירועים קודמים) | Local PostgreSQL / Vector DB | Vector search or SQL query | Historical post-mortems, root causes identified in past incidents, and proven fix actions. |
+| Context | Affected Service Metadata (תיאור השירות שנפגע) | Internal CMDB / K8s Metadata | K8s Annotations / Labels / ConfigMap | Service owner, criticality tier, SLA impact, upstream dependencies, and downstream consumers. |
+
+
+
+
+[ Telemetry Sources ] ----> [ Collector / Storage ] ----> [ AIOps App / Agent ] ----> [ Execution / Remediation ]
+ (K8s, Prometheus, DCGM)      (Prometheus, Loki)           (FastMCP + LLM)            (Kubernetes API, GitOps)
+
+
+add gaurd rails
+
+
+
+
+
+
+
+
+
+
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+Phase 1: Core Cluster & Infrastructure Services
+Objective: Bootstrap the local Kubernetes cluster and deploy essential foundation services (Storage, Git, Registry).
+
+1.1 Cluster Initialization
+
+Provision local Kubernetes cluster nodes (e.g., K3s, RKE2, or bare-metal K8s) with local persistent storage support (e.g., Local Path Provisioner or Longhorn).
+
+Configure internal CNI networking and CoreDNS for cluster-local DNS resolution (*.svc.cluster.local).
+
+1.2 Package & Ingest Base Container Images
+
+On a connected machine, pull required Docker images (gogs/gogs, project-zot/zot, jenkins/jenkins, prom/prometheus, vllm/vllm-openai, etc.) and archive them via docker save.
+
+Import archived images across the air-gap and seed the local container runtime/registry.
+
+1.3 Deploy Lightweight Core DevOps Stack
+
+Zot Registry: Deploy single-replica Zot container registry with PVC storage for local OCI image hosting (zot.devops-core.svc:5000).
+
+Gogs Git Server: Deploy Gogs with PVC storage for hosting system manifests, application source repositories, and local runbooks.
+
+Initial Code Seeding: Create repositories in Gogs for model manifests, AIOps FastAPI backend, and Flask UI.
+
+Phase 2: In-Cluster CI/CD Pipeline (Jenkins & ArgoCD)
+Objective: Establish continuous integration, image building, and declarative GitOps deployments.
+
+2.1 Deploy Jenkins & ArgoCD
+
+Deploy Jenkins for pipeline orchestration and image building.
+
+Deploy ArgoCD for declarative cluster state management.
+
+2.2 Configure Webhooks & GitOps Integration
+
+Configure Gogs Webhooks targeting Jenkins endpoints to trigger pipelines on git push.
+
+Connect ArgoCD to Gogs repositories to track cluster state and automatically sync application updates.
+
+2.3 Create Jenkins CI Pipelines
+
+Pipeline 1 (Model Deployment): Pipeline to package model runtime configs, validate local PV mounts, and update Helm/YAML manifests in Gogs.
+
+Pipeline 2 (AIOps App): Pipeline to build AIOps FastAPI & Flask container images, push them to Zot Registry, and commit updated image tags to Gogs for ArgoCD to sync.
+
+Phase 3: Hardware Support & Telemetry Stack
+Objective: Enable GPU hardware passthrough and deploy full-stack cluster observability.
+
+3.1 Hardware Acceleration Setup
+
+Install NVIDIA Container Toolkit / GPU Operator on cluster nodes.
+
+Verify GPU resource availability ([nvidia.com/gpu](https://nvidia.com/gpu)) via node allocatable resources.
+
+3.2 Observability Stack Deployment
+
+Prometheus & Alertmanager: Deploy Kube-Prometheus-Stack to capture node, pod, and service metrics. Configure Alertmanager webhooks targeting the AIOps application.
+
+NVIDIA DCGM Exporter: Deploy DCGM Exporter to collect VRAM utilization, temperature, GPU load, and XID error metrics into Prometheus.
+
+VictoriaLogs / Grafana Loki: Deploy local log aggregation service to store and tail container stdout/stderr.
+
+Phase 4: Local Model Deployment & MCP Engine
+Objective: Host offline LLM inference and build local diagnostic tooling interfaces.
+
+4.1 Offline LLM Serving
+
+Deploy vLLM (or Ollama) as a K8s Deployment with GPU resource allocation.
+
+Mount pre-downloaded LLM model weights via Local Persistent Volumes.
+
+4.2 FastMCP Diagnostic Server Development
+
+Implement Python FastMCP tool server with read-only cluster access:
+
+K8s tools (get_pod_status, fetch_logs, get_k8s_events, get_deployment_status).
+
+Metric tools (Prometheus PromQL queries for CPU/Memory/GPU).
+
+Local RAG tools (query local vector DB/Gogs for runbooks and historical incidents). Deploy small model fo sementic embaddings Model: BAAI/bge-small-en-v1.5 or nomic-embed-text (~300–500 MB
+
+Phase 5: AIOps Application (FastAPI & Flask UI)
+Objective: Build the core incident reasoning engine and user workspace interface.
+
+5.1 FastAPI Backend Engine
+
+Alert Receiver Endpoint: Implement Webhook handler to receive firing Alertmanager alerts.
+
+Context Orchestrator: Coordinate FastMCP calls to gather all 11 required telemetry data points upon alert arrival.
+
+Inference Pipeline: Send consolidated incident context to local vLLM endpoint for root cause analysis and action recommendation.
+
+Remediation Execution API: Endpoint to invoke low-risk fixes or commit PRs to Gogs for ArgoCD execution.
+
+5.2 Flask Web Dashboard
+
+Build UI components to display real-time active incidents, telemetry highlights (Pod status, GPU load, recent logs), root cause breakdown, and one-click remediation approval buttons.
+
+5.3 Deploy AIOps Stack via Jenkins & ArgoCD
+
+Commit FastAPI and Flask UI source code to Gogs.
+
+Trigger Jenkins pipeline to build and push images to Zot Registry.
+
+ArgoCD syncs the new deployment into the cluster.
+
+
+
++-----------------------------------------------------------------------------------+
+| Phase 1: Storage (PVC) -> Zot Registry -> Gogs Git                                |
++-----------------------------------------------------------------------------------+
+										 |
+										 v
++-----------------------------------------------------------------------------------+
+| Phase 2: Jenkins (CI Build) <--- (Webhooks) ---> Gogs ---> ArgoCD (GitOps Sync)   |
++-----------------------------------------------------------------------------------+
+										 |
+										 v
++-----------------------------------------------------------------------------------+
+| Phase 3: GPU Operator -> DCGM Exporter -> Kube-Prometheus-Stack + Alertmanager    |
++-----------------------------------------------------------------------------------+
+										 |
+										 v
++-----------------------------------------------------------------------------------+
+| Phase 4: vLLM (Model PV) <-------------------------> FastMCP Tool Server          |
++-----------------------------------------------------------------------------------+
+										 |
+										 v
++-----------------------------------------------------------------------------------+
+| Phase 5: FastAPI Backend Engine <-------------------> Flask UI Dashboard          |
++-----------------------------------------------------------------------------------+
+
+
+
+ComponentToolRAM / Disk Footprint
+
+Version Control & Registry	Gogs + Zot	~100 – 150 MB RAM / 15 GB Disk
+
+Telemetry & Metrics	Prometheus + VictoriaLogs	~512 MB – 1 GB RAM / 20 GB Disk
+
+LLM Inference Engine	vLLM (with Qwen-1.5B)	~3 – 5 GB VRAM
+
+AIOps App & UI	FastAPI + Flask	~150 – 250 MB RAM
+
+Cluster Core (K3s/CoredNS)	Kubernetes Control Plane	~500 MB RAM
