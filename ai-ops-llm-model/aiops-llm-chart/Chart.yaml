@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aiops-llm
+description: Helm chart for deploying a lightweight vLLM inference model on Kubernetes with GPU support, Ingress, and Prometheus metrics monitoring.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

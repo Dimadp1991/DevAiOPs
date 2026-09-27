@@ -1,0 +1,36 @@
+replicaCount: 1
+
+image:
+  repository: zot.local/gogs-webhook
+  tag: v1.0.0-5
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 9000
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/rewrite-target: /$1
+  host: webhook.local
+  path: /webhook
+  pathType: Prefix
+
+env:
+  webhookSecret: "gogs-secret-token"
+  jenkinsSecretName: "jenkins"
+
+persistence:
+  enabled: true
+  existingClaim: "python-deps-pvc"
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"

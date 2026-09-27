@@ -1,0 +1,58 @@
+replicaCount: 1
+revisionHistoryLimit: 3
+image:
+  repository: zot.local/aiops-vllm-qwen
+  tag: v1.0.0-13
+  pullPolicy: IfNotPresent
+activeModel: hebrew
+profiles:
+  coder:
+    pvcPath: /models/qwen2.5-coder-1.5b-instruct
+    maxModelLen: 8192
+    gpuMemoryUtilization: 0.8
+    quantization: null
+    loadFormat: null
+  hebrew:
+    pvcPath: /models/qwen2.5-3b-awq
+    maxModelLen: 4096
+    gpuMemoryUtilization: 0.7
+    quantization: awq
+    loadFormat: auto
+persistence:
+  existingClaim: shared-model-pvc
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+gpu:
+  enabled: true
+  wslPath: /usr/lib/wsl
+resources:
+  limits:
+    cpu: '4'
+    memory: 8Gi
+  requests:
+    cpu: '2'
+    memory: 4Gi
+ingress:
+  enabled: true
+  annotations: {}
+  hosts:
+  - host: aiops-llm.local
+    paths:
+    - path: /
+      pathType: Prefix
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    additionalLabels:
+      release: prometheus
+probes:
+  readiness:
+    initialDelaySeconds: 120
+    periodSeconds: 10
+  liveness:
+    initialDelaySeconds: 300
+    periodSeconds: 15

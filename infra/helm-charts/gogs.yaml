@@ -36,7 +36,10 @@ spec:
         app.kubernetes.io/name: gogs
         app.kubernetes.io/instance: gogs
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
+        # 1. Gogs Application Container
         - name: gogs
           image: gogs/gogs:latest
           imagePullPolicy: IfNotPresent
@@ -52,6 +55,19 @@ spec:
               value: "false"
             - name: RUN_MODE
               value: "prod"
+            # Point Gogs to the Postgres container running in the same pod via localhost
+            - name: GOGS__webhook__LOCAL_NETWORK_ALLOWLIST
+              value: "localhost, 127.0.0.1, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
+            - name: GOGS__database__DB_TYPE
+              value: "postgres"
+            - name: GOGS__database__HOST
+              value: "127.0.0.1:5432"
+            - name: GOGS__database__NAME
+              value: "gogs"
+            - name: GOGS__database__USER
+              value: "gogs"
+            - name: GOGS__database__PASSWD
+              value: "gogs"
           resources:
             requests:
               cpu: 100m
@@ -62,6 +78,34 @@ spec:
           volumeMounts:
             - name: gogs-data
               mountPath: /data
+
+        # 2. PostgreSQL Sidecar Container
+        - name: postgres
+          image: postgres:15-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+              name: postgres
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: "gogs"
+            - name: POSTGRES_USER
+              value: "gogs"
+            - name: POSTGRES_PASSWORD
+              value: "gogs"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: gogs-data
+              mountPath: /var/lib/postgresql/data
+              subPath: postgresql # Stores postgres data in a separate folder inside the same PVC
+
       volumes:
         - name: gogs-data
           persistentVolumeClaim:

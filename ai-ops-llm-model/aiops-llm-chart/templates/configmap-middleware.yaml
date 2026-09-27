@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-middleware-config
+data:
+  delay_middleware.py: |
+    import asyncio
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    class ArtificialDelayMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            target_paths = ["/v1/chat/completions", "/v1/completions", "/metrics"]
+            if any(path in request.url.path for path in target_paths):
+                await asyncio.sleep(30.0) 
+            return await call_next(request)

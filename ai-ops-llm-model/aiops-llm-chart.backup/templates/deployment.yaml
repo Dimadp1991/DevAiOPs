@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aiops-llm.fullname" . }}
+  labels:
+    {{- include "aiops-llm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit | default 3 }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "aiops-llm.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "aiops-llm.selectorLabels" . | nindent 8 }}
+      {{- if .Values.monitoring.enabled }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: {{ .Values.service.targetPort | quote }}
+      {{- end }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: VLLM_USE_V1
+              value: "0"
+            - name: VLLM_USE_V2_MODEL_RUNNER
+              value: "0"
+            - name: VLLM_WSL2_ENABLE_PIN_MEMORY
+              value: "1"
+            - name: VLLM_WORKER_MULTIPROC_METHOD
+              value: "spawn"
+            - name: NCCL_P2P_DISABLE
+              value: "1"
+            # Fixes hf_transfer CDN crash & enables automatic retries
+            - name: HF_HUB_ENABLE_HF_TRANSFER
+              value: "0"
+            # Optional: Add your HF Token if hitting rate limits on public CDN
+            - name: HF_TOKEN
+              value: ""
+            {{- if .Values.gpu.enabled }}
+            - name: LD_LIBRARY_PATH
+              value: /usr/lib/wsl/lib
+            {{- end }}
+          args:
+            - "--model"
+            - "/models/qwen2.5-coder-1.5b-instruct" # Pointing directly to the mounted PVC path
+            - "--port"
+            - {{ .Values.service.targetPort | quote }}
+            - "--host"
+            - "0.0.0.0"
+            - "--gpu-memory-utilization"
+            - {{ .Values.model.gpuMemoryUtilization | quote }}
+            - "--max-model-len"
+            - {{ .Values.model.maxModelLen | quote }}
+            - "--enforce-eager"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          {{- if .Values.gpu.enabled }}
+          securityContext:
+            privileged: true
+          {{- end }}
+          volumeMounts:
+            - name: model-storage # Replaced old hf-cache with our shared PVC mount
+              mountPath: /models
+            - name: dshm
+              mountPath: /dev/shm
+            {{- if .Values.gpu.enabled }}
+            - name: wsl-driver
+              mountPath: /usr/lib/wsl
+            - name: dev-dxg
+              mountPath: /dev/dxg
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default "shared-model-pvc" }}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+        {{- if .Values.gpu.enabled }}
+        - name: wsl-driver
+          hostPath:
+            path: {{ .Values.gpu.wslPath | default "/usr/lib/wsl" }}
+        - name: dev-dxg
+          hostPath:
+            path: /dev/dxg
+        {{- end }}

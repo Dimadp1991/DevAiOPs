@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: aiops-alert-routing
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  route:
+    groupBy: ['alertname', 'namespace']
+    groupWait: 10s
+    groupInterval: 30s
+    repeatInterval: 1h
+    receiver: 'aiops-webhook'
+    matchers: []
+    routes: []
+  receivers:
+    - name: 'aiops-webhook'
+      webhookConfigs:
+        - url: 'http://aiops.app.local/api/v1/alerts/webhook'
+          sendResolved: true

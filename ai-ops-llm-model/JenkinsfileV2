@@ -1,0 +1,73 @@
+pipeline {
+    agent {
+        node {
+            label 'dind-agent'
+        }
+    }
+
+    stages {
+        stage('Check workspace') {
+            steps {
+                sh 'echo "Checking workspace files:" && ls -la'
+            }
+        }
+
+        stage('Build and Push vLLM image') {
+            steps {
+                    sh '''
+                        docker build -t zot.local/aiops-vllm-qwen:v1.0.0-${BUILD_NUMBER} .
+                        docker push zot.local/aiops-vllm-qwen:v1.0.0-${BUILD_NUMBER}
+                    '''
+
+            }
+        }
+
+        stage('Update Helm Values and Git Push') {
+            steps {
+                    withCredentials([usernamePassword(credentialsId: 'git-credentials',
+                                                      usernameVariable: 'GIT_USERNAME',
+                                                      passwordVariable: 'GIT_PASSWORD')]) {
+                        sh '''
+                            # Ensure git is installed on the tools container if not present
+                            command -v git >/dev/null 2>&1 || (apt-get update && apt-get install -y git)
+
+                            pip install --no-cache-dir pyyaml || true
+
+                            git config --global --add safe.directory '*'
+                            git config --global user.name "Dima Pochin"
+                            git config --global user.email "gitlab_admin_5e326f@example.com"
+                            git config http.sslVerify false
+
+                            python3 -c "
+import yaml
+path = 'aiops-llm-chart/values.yaml'
+with open(path, 'r') as f:
+    data = yaml.safe_load(f)
+
+if 'backend' in data and 'image' in data['backend']:
+    data['backend']['image']['tag'] = 'v1.0.0-${BUILD_NUMBER}'
+if 'ui' in data and 'image' in data['ui']:
+    data['ui']['image']['tag'] = 'v1.0.0-${BUILD_NUMBER}'
+
+with open(path, 'w') as f:
+    yaml.safe_dump(data, f, sort_keys=False)
+"
+                            git add aiops-llm-chart/values.yaml
+                            git commit -m "CI: Update image tags to build ${BUILD_NUMBER}"
+                            git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@gogs.local/gogs/ai-ops-llm-model.git
+                            git push origin HEAD:main
+                        '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully built via persistent DinD container and updated Helm values in Git."
+        }
+        failure {
+            echo "Pipeline failed during build or Git operations."
+        }
+    }
+}

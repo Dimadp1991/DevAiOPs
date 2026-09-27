@@ -1,0 +1,7 @@
+ docker build -t gogs-webhook:v0.1 .
+ docker tag gogs-webhook:v0.1 zot.local/gogs-webhook:v0.1
+ docker push zot.local/gogs-webhook:v0.1
+ docker login zot.local
+
+
+kubectl get secret jenkins-creds -o yaml | sed 's/namespace: .*/namespace: default/' | kubectl apply -f -

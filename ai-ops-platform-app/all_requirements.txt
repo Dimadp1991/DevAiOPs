@@ -1,0 +1,4 @@
+-r backend/requirements.txt
+-r ui/requirements.txt
+prometheus-client>=0.19.0,<1.0.0
+nvidia-ml-py>=11.530.155

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpu-app-exporter
+  namespace: monitoring
+  labels:
+    app: gpu-app-exporter
+spec:
+  ports:
+    - name: metrics
+      port: 9400
+      targetPort: 9400
+# Omitting spec.selector here allows us to manually bind it via an Endpoints object below
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: gpu-app-exporter
+  namespace: monitoring
+subsets:
+  - addresses:
+      - ip: "172.29.192.1"
+    ports:
+      - name: metrics
+        port: 9400
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gpu-app-exporter-monitor
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: gpu-app-exporter
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /

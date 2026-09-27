@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Incidents — AIOps Platform{% endblock %}
+{% block content %}
+<div class="dashboard-header">
+  <div>
+    <h1>Incident Dashboard</h1>
+    <p class="subtitle">Real-time alerts enriched by K8s, Prometheus/GPU telemetry, and RAG analysis.</p>
+  </div>
+</div>
+
+{% if not incidents %}
+<div class="empty-state">
+  <div class="empty-icon">🔔</div>
+  <h3>No Active Incidents</h3>
+  <p>No incidents recorded yet. Trigger one via Alertmanager webhook or API:</p>
+  <code>POST /api/v1/alerts/simulate</code>
+</div>
+{% else %}
+<div class="table-card">
+  <table class="incident-table">
+    <thead>
+      <tr>
+        <th>Incident ID</th>
+        <th>Alert Name</th>
+        <th>Service</th>
+        <th>Severity</th>
+        <th>Status</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inc in incidents %}
+      <tr class="clickable" onclick="window.location='/incidents/{{ inc.incident_id }}'">
+        <td class="font-mono"><a href="/incidents/{{ inc.incident_id }}">{{ inc.incident_id }}</a></td>
+        <td class="font-semibold">{{ inc.alert_name }}</td>
+        <td>{{ inc.service_name }}</td>
+        <td><span class="badge severity-{{ inc.severity }}">{{ inc.severity }}</span></td>
+        <td><span class="badge status-{{ inc.status }}">{{ inc.status }}</span></td>
+        <td class="text-muted">{{ format_dt(inc.created_at) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

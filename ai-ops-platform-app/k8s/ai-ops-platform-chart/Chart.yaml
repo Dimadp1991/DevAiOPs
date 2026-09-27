@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aiops-platform
+description: A Helm chart for AIOps platform deployment
+type: application
+version: 0.1.0
+appVersion: "2.0.0"

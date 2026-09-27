@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiops-backend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: aiops-backend
+    app.kubernetes.io/part-of: aiops-platform
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app: aiops-backend
+  template:
+    metadata:
+      labels:
+        app: aiops-backend
+    spec:
+      {{- if .Values.rbac.create }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: USE_MOCK_PROVIDERS
+              value: {{ .Values.backend.env.useMockProviders | quote }}
+            - name: AGENT_ENABLED
+              value: {{ .Values.backend.env.agentEnabled | quote }}
+            - name: AUTO_ENRICH_ON_ALERT
+              value: {{ .Values.backend.env.autoEnrichOnAlert | quote }}
+            - name: SEED_DEMO_INCIDENT
+              value: {{ .Values.backend.env.seedDemoIncident | quote }}
+            - name: KUBERNETES_NAMESPACE
+              value: {{ .Values.backend.env.kubernetesNamespace | quote }}
+            - name: PROMETHEUS_URL
+              value: {{ .Values.backend.env.prometheusUrl | quote }}
+            {{- if .Values.backend.env.dcgmExporterUrl }}
+            - name: DCGM_EXPORTER_URL
+              value: {{ .Values.backend.env.dcgmExporterUrl | quote }}
+            {{- end }}
+            {{- if .Values.backend.env.llmApiUrl }}
+            - name: LLM_API_URL
+              value: {{ .Values.backend.env.llmApiUrl | quote }}
+            {{- end }}
+            {{- if .Values.backend.env.llmModel }}
+            - name: LLM_MODEL
+              value: {{ .Values.backend.env.llmModel | quote }}
+            {{- end }}
+            {{- if .Values.backend.env.qdrantUrl }}
+            - name: QDRANT_URL
+              value: {{ .Values.backend.env.qdrantUrl | quote }}
+            {{- end }}
+            {{- if .Values.backend.env.lokiUrl }}
+            - name: LOKI_URL
+              value: {{ .Values.backend.env.lokiUrl | quote }}
+            {{- end }}
+            {{- if .Values.pythonDeps.enabled }}
+            - name: PYTHONPATH
+              value: "/pvc/site-packages"
+            {{- end }}
+            {{- if .Values.postgres.enabled }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.secretName }}
+                  key: DATABASE_URL
+            {{- end }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          {{- if .Values.pythonDeps.enabled }}
+          volumeMounts:
+            - name: python-deps-volume
+              mountPath: /pvc
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      {{- if .Values.pythonDeps.enabled }}
+      volumes:
+        - name: python-deps-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.pythonDeps.pvcName }}
+      {{- end }}

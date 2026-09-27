@@ -1,0 +1,72 @@
+global:
+  namespace: aiops-platform
+revisionHistoryLimit: 3
+pythonDeps:
+  enabled: true
+  pvcName: python-deps-pvc
+backend:
+  replicaCount: 1
+  image:
+    repository: zot.local/aiops-backend
+    tag: v1.0.0-53
+    pullPolicy: Always
+  service:
+    port: 8000
+  env:
+    useMockProviders: 'false'
+    agentEnabled: 'true'
+    autoEnrichOnAlert: 'true'
+    seedDemoIncident: 'false'
+    kubernetesNamespace: default
+    prometheusUrl: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+    dcgmExporterUrl: http://gpu-app-exporter.monitoring.svc.cluster.local:9400
+    llmApiUrl: http://aiops-llm.local/
+    llmModel: hebrew
+    qdrantUrl: ''
+    lokiUrl: ''
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+ui:
+  replicaCount: 1
+  image:
+    repository: zot.local/aiops-ui
+    tag: v1.0.0-53
+    pullPolicy: Always
+  service:
+    port: 80
+  env:
+    apiUrl: http://aiops-backend.aiops-platform.svc.cluster.local:8000
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+ingress:
+  enabled: true
+  className: traefik
+  host: aiops.app.local
+postgres:
+  enabled: false
+  name: aiops-postgres
+  image: postgres:16-alpine
+  storage: 5Gi
+  auth:
+    username: aiops
+    password: aiops
+    database: aiops
+  secretName: aiops-backend-secret
+rbac:
+  create: true
+serviceAccount:
+  name: aiops-backend
+prometheusRules:
+  enabled: true
+  namespace: monitoring
+  releaseLabel: prometheus

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}{{ incident.incident_id }} — AIOps{% endblock %}
+{% block content %}
+<div class="detail-header">
+  <div>
+    <a href="/" class="back-link">← Back to Incidents</a>
+    <h1>{{ incident.incident_id }}</h1>
+    <p class="subtitle">{{ incident.alert.summary }}</p>
+  </div>
+  <div class="header-badges">
+    <span class="badge severity-{{ incident.alert.severity }}">{{ incident.alert.severity }}</span>
+    <span class="badge status-{{ incident.status }}">{{ incident.status }}</span>
+  </div>
+</div>
+
+{% for ev in incident.telemetry.events %}
+  {% if 'RemediationExecuted' in ev %}
+  <div class="remediation-banner">
+    <span class="remediation-icon">✅</span>
+    <div>
+      <strong>Remediation Executed</strong>
+      <p class="remediation-msg">{{ ev }}</p>
+    </div>
+  </div>
+  {% endif %}
+{% endfor %}
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Alert Details</h2>
+    <dl class="dl-compact">
+      <dt>Name</dt><dd>{{ incident.alert.name }}</dd>
+      <dt>Summary</dt><dd>{{ incident.alert.summary }}</dd>
+      <dt>Fired At</dt><dd>{{ format_dt(incident.alert.fired_at) }}</dd>
+    </dl>
+  </section>
+
+  <section class="card">
+    <h2>Service Info</h2>
+    <dl class="dl-compact">
+      <dt>Service Name</dt><dd>{{ incident.service_info.name }}</dd>
+      <dt>Owner</dt><dd>{{ incident.service_info.owner }}</dd>
+      <dt>Criticality</dt><dd>{{ incident.service_info.criticality }}</dd>
+      <dt>Namespace</dt><dd>{{ incident.service_info.namespace }}</dd>
+    </dl>
+  </section>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Kubernetes State</h2>
+    <dl class="dl-compact">
+      <dt>Pod Name</dt><dd>{{ incident.k8s_state.pod_name or '—' }}</dd>
+      <dt>Pod Status</dt><dd><span class="badge status-crash">{{ incident.k8s_state.pod_status or '—' }}</span></dd>
+      <dt>Restarts</dt><dd>{{ incident.k8s_state.restarts }}</dd>
+      <dt>Replicas</dt><dd>{{ incident.k8s_state.deployment_ready_replicas or '—' }}</dd>
+      <dt>Health Check</dt><dd>{{ incident.k8s_state.health_check or '—' }}</dd>
+    </dl>
+  </section>
+
+  {% if incident.telemetry.gpu and (incident.telemetry.gpu.utilization_pct > 0 or incident.telemetry.gpu.vram_used_mb > 0 or incident.telemetry.gpu.model) %}
+  <section class="card">
+    <h2>GPU Telemetry</h2>
+    <dl class="dl-compact">
+      {% if incident.telemetry.gpu.model %}
+      <dt>GPU Model</dt><dd>{{ incident.telemetry.gpu.model }}</dd>
+      {% endif %}
+      <dt>Utilization</dt><dd>{{ incident.telemetry.gpu.utilization_pct }}%</dd>
+      <dt>VRAM Usage</dt><dd>{{ incident.telemetry.gpu.vram_used_mb | int }} / {{ incident.telemetry.gpu.vram_total_mb | int }} MB</dd>
+      {% if incident.telemetry.gpu.temperature_celsius is not none %}
+      <dt>Temperature</dt><dd>{{ incident.telemetry.gpu.temperature_celsius }} °C</dd>
+      {% endif %}
+      {% if incident.telemetry.gpu.power_watts is not none %}
+      <dt>Power Usage</dt><dd>{{ incident.telemetry.gpu.power_watts }} W</dd>
+      {% endif %}
+      <dt>XID Errors</dt><dd>{{ incident.telemetry.gpu.xid_errors | join(', ') if incident.telemetry.gpu.xid_errors else 'None' }}</dd>
+    </dl>
+    {% if incident.telemetry.gpu.vram_total_mb > 0 %}
+    <div class="vram-bar">
+      <div class="vram-fill" style="width: {{ (incident.telemetry.gpu.vram_used_mb / incident.telemetry.gpu.vram_total_mb * 100) }}%"></div>
+    </div>
+    {% endif %}
+  </section>
+  {% elif incident.telemetry.metrics %}
+  <section class="card">
+    <h2>Telemetry Metrics</h2>
+    <dl class="dl-compact">
+      {% for key, val in incident.telemetry.metrics.items() %}
+      <dt>{{ key }}</dt><dd>{{ val }}</dd>
+      {% endfor %}
+    </dl>
+  </section>
+  {% endif %}
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Recent Logs</h2>
+    <pre class="log-block">{% for line in incident.telemetry.recent_logs %}{{ line }}
+{% else %}No logs collected. Run enrich to gather telemetry.
+{% endfor %}</pre>
+  </section>
+
+  <section class="card">
+    <h2>K8s Events</h2>
+    <ul class="event-list">
+      {% for ev in incident.telemetry.events %}
+      <li>{{ ev }}</li>
+      {% else %}
+      <li class="muted">No recent K8s events</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<section class="card">
+  <h2>Knowledge Base</h2>
+  {% if incident.knowledge_base.runbook %}
+  <p class="runbook"><strong>Runbook:</strong> {{ incident.knowledge_base.runbook }}</p>
+  {% endif %}
+  {% if incident.knowledge_base.historical_incidents %}
+  <h3>Historical Incidents</h3>
+  <ul class="kb-list">
+    {% for h in incident.knowledge_base.historical_incidents %}
+    <li>{{ h }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if incident.knowledge_base.suggested_actions %}
+  <h3>Suggested Actions</h3>
+  <ul class="kb-list">
+    {% for a in incident.knowledge_base.suggested_actions %}
+    <li>{{ a }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if not incident.knowledge_base.runbook and not incident.knowledge_base.historical_incidents and not incident.knowledge_base.suggested_actions %}
+  <p class="muted">No knowledge base matches found for this incident query.</p>
+  {% endif %}
+</section>
+
+{% if incident.agent_analysis %}
+<section class="card agent-card">
+  <h2>🤖 Agent Analysis</h2>
+  <div class="analysis-meta">
+    <p class="root-cause"><strong>Root Cause:</strong> {{ incident.agent_analysis.root_cause }}</p>
+    <p class="confidence-tag"><strong>Confidence:</strong> {{ (incident.agent_analysis.confidence * 100) | round(0) }}%</p>
+  </div>
+  {% if incident.agent_analysis.reasoning %}
+  <p class="reasoning"><strong>Reasoning:</strong> {{ incident.agent_analysis.reasoning }}</p>
+  {% endif %}
+  {% if incident.agent_analysis.remediation_steps %}
+  <h3>Remediation Steps</h3>
+  <ol class="remediation-list">
+    {% for step in incident.agent_analysis.remediation_steps %}
+    <li>{{ step }}</li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</section>
+{% endif %}
+
+<div class="action-buttons-container">
+  {% if not incident.agent_analysis %}
+  <form method="post" action="/incidents/{{ incident.incident_id }}/enrich">
+    <button type="submit" class="btn-primary">⚡ Run Orchestrator / Enrich Incident</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if incident.can_remediate and incident.status != 'resolved' %}
+<section class="card remediation-card">
+  <h2>🛠️ Execute Remediation Command</h2>
+  <form method="post" action="/incidents/{{ incident.incident_id }}/remediate" onsubmit="return confirm('Do you give permission to execute \'' + this.action.options[this.action.selectedIndex].text.trim() + '\' for incident {{ incident.incident_id }}?');">
+    <div class="remediation-controls">
+      <select name="action" class="remediation-select">
+        <option value="all">⚡ Full Remediation (Delete Pod & Rollback Deployment)</option>
+        <option value="rollback">🔄 Rollback Deployment / Rollout Restart</option>
+        <option value="delete_pod">🗑️ Delete Pod (Container Restart)</option>
+      </select>
+      <button type="submit" class="btn-warning">Execute Command</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

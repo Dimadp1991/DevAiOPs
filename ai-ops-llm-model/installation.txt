@@ -1,0 +1,24 @@
+python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='Qwen/Qwen2.5-Coder-1.5B-Instruct', local_dir='./qwen2.5-coder-1.5b-instruct')"
+
+docker build -t aiops-vllm-qwen:v0.6.3 .
+
+git osp: gogs-> jenkins pipeline-> argocd
+
+helm upgrade --install aiops-llm-qwen ./aiops-llm-chart \
+  -f ./aiops-llm-chart/values.yaml \
+  --namespace aiops \
+  --create-namespace
+
+
+
+ python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='itayl/Qwen2.5-1.5B-Instruct-bnb-4bit-Hebrew', local_dir='./qwen2.5-1.5b-instruct-hebrew')"
+
+python -c "
+from huggingface_hub import snapshot_download
+snapshot_download(
+    repo_id='Qwen/Qwen2.5-3B-Instruct-AWQ',
+    local_dir='qwen2.5-3b-awq',
+    local_dir_use_symlinks=False,
+    ignore_patterns=['.git*']
+)
+"

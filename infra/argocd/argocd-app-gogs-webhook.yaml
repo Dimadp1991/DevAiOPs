@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gogs-webhook
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'http://gogs.local/gogs/gogs_webhook.git'
+    targetRevision: main
+    path: gogs-webhook-chart
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: devops-core
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

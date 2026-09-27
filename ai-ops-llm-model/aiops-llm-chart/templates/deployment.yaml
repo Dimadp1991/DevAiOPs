@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aiops-llm.fullname" . }}
+  labels:
+    {{- include "aiops-llm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit | default 3 }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "aiops-llm.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "aiops-llm.selectorLabels" . | nindent 8 }}
+      {{- if .Values.monitoring.enabled }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: {{ .Values.service.targetPort | quote }}
+      {{- end }}
+    spec:
+      {{- $active := .Values.activeModel }}
+      {{- $model := index .Values.profiles $active }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: PYTHONPATH
+              value: "/"
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: VLLM_USE_V1
+              value: "0"
+            - name: VLLM_USE_V2_MODEL_RUNNER
+              value: "0"
+            - name: VLLM_WSL2_ENABLE_PIN_MEMORY
+              value: "1"
+            - name: VLLM_WORKER_MULTIPROC_METHOD
+              value: "spawn"
+            - name: NCCL_P2P_DISABLE
+              value: "1"
+            - name: HF_HUB_ENABLE_HF_TRANSFER
+              value: "0"
+            - name: HF_HUB_OFFLINE
+              value: "1"
+            - name: HF_TOKEN
+              value: ""
+            {{- if .Values.gpu.enabled }}
+            - name: LD_LIBRARY_PATH
+              value: /usr/lib/wsl/lib
+            {{- end }}
+          args:
+            - "--model"
+            - {{ $model.pvcPath | quote }}
+            - "--served-model-name"
+            - {{ $active | quote }}
+            - "--port"
+            - {{ .Values.service.targetPort | quote }}
+            - "--host"
+            - "0.0.0.0"
+            - "--gpu-memory-utilization"
+            - {{ $model.gpuMemoryUtilization | quote }}
+            - "--max-model-len"
+            - {{ $model.maxModelLen | quote }}
+            - "--enforce-eager"
+            {{- if and (hasKey $model "quantization") $model.quantization }}
+            - "--quantization"
+            - {{ $model.quantization | quote }}
+            {{- end }}
+            {{- if and (hasKey $model "loadFormat") $model.loadFormat }}
+            - "--load-format"
+            - {{ $model.loadFormat | quote }}
+            - "--trust-remote-code"
+            {{- end }}
+            - "--chat-template"
+            - "/models/template.jinja"
+#            - "--fail-flag"
+#            - "failValue"
+#            - "--middleware"  # middleware to cause delay
+#            - "delay_middleware.ArtificialDelayMiddleware"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          {{- if .Values.gpu.enabled }}
+          securityContext:
+            privileged: true
+          {{- end }}
+          volumeMounts:
+            - name: model-storage
+              mountPath: /models
+            - name: dshm
+              mountPath: /dev/shm
+            - name: middleware-script
+              mountPath: /delay_middleware.py
+              subPath: delay_middleware.py
+            {{- if .Values.gpu.enabled }}
+            - name: wsl-driver
+              mountPath: /usr/lib/wsl
+            - name: dev-dxg
+              mountPath: /dev/dxg
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default "shared-model-pvc" }}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+        {{- if .Values.gpu.enabled }}
+        - name: wsl-driver
+          hostPath:
+            path: {{ .Values.gpu.wslPath | default "/usr/lib/wsl" }}
+        - name: dev-dxg
+          hostPath:
+            path: /dev/dxg
+        {{- end }}
+        - name: middleware-script
+          configMap:
+            name: vllm-middleware-config

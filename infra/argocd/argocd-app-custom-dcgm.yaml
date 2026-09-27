@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gpu-app-exporter
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: gpu-app-exporter
+spec:
+  project: default
+  source:
+    repoURL: 'http://gogs.local/gogs/gpu-custom-exporter-metrics.git'
+    targetRevision: main
+    path: gpu-app-exporter
+    helm:
+      values: |
+        replicaCount: 1
+        serviceMonitor:
+          enabled: true
+          namespace: monitoring
+          labels:
+            release: prometheus
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

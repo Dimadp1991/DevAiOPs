@@ -1,0 +1,17 @@
+AIOps Platform deployed to namespace {{ .Values.global.namespace }}.
+
+UI:     http://{{ .Values.ingress.host }}
+API:    http://{{ .Values.ingress.host }}/api/v1/health
+Docs:   http://{{ .Values.ingress.host }}/api/v1/docs
+
+Alertmanager webhook:
+  http://aiops-backend.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.backend.service.port }}/api/v1/alerts/webhook
+
+{{- if .Values.pythonDeps.enabled }}
+
+Python deps PVC: {{ .Values.pythonDeps.pvcName }}
+Run ./setup-deps-storage.sh before first deploy if PVC is empty.
+{{- end }}
+
+Upgrade:
+  helm upgrade {{ .Release.Name }} ./k8s/ai-ops-platform-chart -n {{ .Values.global.namespace }}

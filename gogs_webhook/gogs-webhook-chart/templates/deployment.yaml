@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gogs-webhook.fullname" . }}-deployment
+  labels:
+    {{- include "gogs-webhook.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "gogs-webhook.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gogs-webhook.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "gogs-webhook.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: python-deps-volume
+              mountPath: /pvc
+          env:
+            - name: PYTHONPATH
+              value: "/pvc/site-packages"
+            - name: WEBHOOK_SECRET
+              value: {{ .Values.env.webhookSecret | quote }}
+            - name: JENKINS_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.env.jenkinsSecretName }}
+                  key: jenkins-admin-user
+            - name: JENKINS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.env.jenkinsSecretName }}
+                  key: jenkins-admin-password
+      volumes:
+        - name: python-deps-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim }}
