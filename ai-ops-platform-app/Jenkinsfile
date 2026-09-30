@@ -1,6 +1,6 @@
 pipeline {
  agent {
-        kubernetes {
+         kubernetes {
             yaml """
 apiVersion: v1
 kind: Pod
@@ -9,15 +9,8 @@ metadata:
     some-label: dind-builder-pod
 spec:
   containers:
-  - name: tools
-    image: python:3.12-slim
-    imagePullPolicy: IfNotPresent
-    command:
-      - sleep
-    args:
-      - infinity
   - name: dind
-    image: docker:dind
+    image: zot.local/python-git-dind:27-pg-dind
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
@@ -81,12 +74,11 @@ spec:
 
         stage('Update Helm Values and Git Push') {
             steps {
-                container('tools') {
+                container('dind') {
                     withCredentials([usernamePassword(credentialsId: 'git-credentials',
                                                       usernameVariable: 'GIT_USERNAME',
                                                       passwordVariable: 'GIT_PASSWORD')]) {
                         sh '''
-                            apt-get update && apt-get install -y git && pip install --no-cache-dir pyyaml
 
                             git config --global --add safe.directory /home/jenkins/agent/workspace/aiops-deploy-platform-app
                             git config --global user.name "Dima Pochin"

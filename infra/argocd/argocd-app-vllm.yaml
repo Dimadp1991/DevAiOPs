@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'http://gogs.local/gogs/ai-ops-llm-model.git'
+    repoURL: 'http://gogs.gogs.svc.cluster.local:3000/gogs/ai-ops-llm-model.git'
     targetRevision: main
     path: aiops-llm-chart
   destination:

@@ -19,7 +19,7 @@
     <span class="remediation-icon">✅</span>
     <div>
       <strong>Remediation Executed</strong>
-      <p class="remediation-msg">{{ ev }}</p>
+      <p class="remediation-msg">{{ ev | urlize | safe }}</p>
     </div>
   </div>
   {% endif %}

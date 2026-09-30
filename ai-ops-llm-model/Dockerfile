@@ -1,5 +1,5 @@
 
-FROM docker.io/vllm/vllm-openai:v0.6.3
+FROM zot.local/vllm/vllm-openai:v0.6.3
 
 # Set environment variables
 ENV HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface

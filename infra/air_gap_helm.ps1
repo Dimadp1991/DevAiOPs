@@ -9,6 +9,7 @@ helm repo add gpu-operator https://nvidia.github.io/gpu-operator
 helm repo add nvidia https://nvidia.github.io/gpu-operator
 helm repo add zot https://project-zot.github.io/helm-charts
 helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add qdrant https://qdrant.github.io/qdrant-helm
 helm repo add nvdp https://github.io
 
 helm repo update
@@ -22,6 +23,7 @@ helm pull nvidia/gpu-operator --destination .\helm-chartsa
 helm pull nvdp/nvidia-device-plugin --destination .\helm-charts
 helm pull zot/zot --destination .\helm-charts
 helm pull bitnami/postgresql --destination .\helm-charts
+helm pull qdrant/qdrant --destination .\helm-charts
 
 # Compress into a single bundle
 Write-Host "===> Compressing charts archive..." -ForegroundColor Green

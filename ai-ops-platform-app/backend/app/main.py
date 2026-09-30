@@ -55,6 +55,7 @@ app.include_router(alerts.router, prefix=_API_PREFIX)
 
 #TO RUN LOCAL FOR DEBUG
 # if __name__ == "__main__":
+#     import uvicorn
 #     # 3. Pass the lowercase string variable directly to Uvicorn
 #     uvicorn.run(
 #         "main:app",

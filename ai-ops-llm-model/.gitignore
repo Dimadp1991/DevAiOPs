@@ -1,0 +1,23 @@
+# --- OS & Environment ---
+.DS_Store
+Thumbs.db
+.env
+*.local
+
+# --- Model Weights & Large Files ---
+# Ignore downloaded local model weight directories or weights
+qwen2.5-coder-1.5b-instruct/
+qwen2.5-3b-awq/
+*.safetensors
+*.bin
+*.pt
+*.gguf
+
+# --- Helm Artifacts ---
+aiops-llm-chart/charts/
+aiops-llm-chart/*.tgz
+*.lock
+
+# --- Logs & Temporary Files ---
+*.log
+tmp/

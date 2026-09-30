@@ -8,7 +8,7 @@ app = Flask(__name__)
 WEBHOOK_SECRET = "gogs-secret-token"
 
 # Internal cluster URL routing to your Jenkins service in devops-core
-JENKINS_URL = os.getenv("JENKINS_URL", "http://jenkins.local/")
+JENKINS_URL = os.getenv("JENKINS_URL", "http://jenkins.devops-core.svc.cluster.local:8080")
 # JENKINS_USER = os.getenv("JENKINS_USER")
 # JENKINS_TOKEN = os.getenv("JENKINS_TOKEN")
 

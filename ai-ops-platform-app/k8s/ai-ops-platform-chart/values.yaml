@@ -8,7 +8,7 @@ backend:
   replicaCount: 1
   image:
     repository: zot.local/aiops-backend
-    tag: v1.0.0-53
+    tag: v1.0.0-68
     pullPolicy: Always
   service:
     port: 8000
@@ -20,7 +20,7 @@ backend:
     kubernetesNamespace: default
     prometheusUrl: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
     dcgmExporterUrl: http://gpu-app-exporter.monitoring.svc.cluster.local:9400
-    llmApiUrl: http://aiops-llm.local/
+    llmApiUrl: http://aiops-llm-app.devops-core.svc.cluster.local:8080
     llmModel: hebrew
     qdrantUrl: ''
     lokiUrl: ''
@@ -35,7 +35,7 @@ ui:
   replicaCount: 1
   image:
     repository: zot.local/aiops-ui
-    tag: v1.0.0-53
+    tag: v1.0.0-68
     pullPolicy: Always
   service:
     port: 80
@@ -53,7 +53,7 @@ ingress:
   className: traefik
   host: aiops.app.local
 postgres:
-  enabled: false
+  enabled: true
   name: aiops-postgres
   image: postgres:16-alpine
   storage: 5Gi

@@ -93,7 +93,7 @@ class Incident(BaseModel):
     telemetry: Telemetry = Field(default_factory=Telemetry)
     knowledge_base: KnowledgeBase = Field(default_factory=KnowledgeBase)
     agent_analysis: AgentAnalysis | None = None
-    can_remediate: bool = False
+    can_remediate: bool = True
 
 
 class AlertmanagerWebhook(BaseModel):

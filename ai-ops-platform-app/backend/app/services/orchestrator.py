@@ -163,6 +163,7 @@ class AgentOrchestrator:
             app_names = {app.get("metadata", {}).get("name") for app in all_apps if app.get("metadata", {}).get("name")}
             logger.info(f"Found {app_names} applications")
         except Exception as ex:
+            logger.error(f"Error calling ArgoCD API: [{ex}]")
             app_names = set()
 
         if service and service != "unknown-service" and service in app_names:
@@ -179,7 +180,7 @@ class AgentOrchestrator:
                     break
 
         if matched_app_name:
-            argocd_url = f"{argocd_client.server_url}/applications/{matched_app_name}"
+            argocd_url = f"http://argo.local/applications/{matched_app_name}"
             actions.append(f"Application '{matched_app_name}' is managed by ArgoCD. For further details, refer to the Dashboard: {argocd_url}")
         else:
             # Standard K8s remediation fallback

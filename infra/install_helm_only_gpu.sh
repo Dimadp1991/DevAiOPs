@@ -30,7 +30,10 @@ if [ -n "$GPU_CHART" ]; then
       --namespace gpu-operator \
       --create-namespace \
       --version v26.7.0 \
-      --set operator.version=v26.7.0 \
+      --set nfd.enabled=false \
+      --set driver.enabled=false \
+      --set toolkit.enabled=false \
+      --set dcgmExporter.enabled=true \
       --wait
 else
     echo "Warning: GPU Operator chart .tgz not found."

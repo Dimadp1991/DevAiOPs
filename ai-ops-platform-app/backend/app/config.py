@@ -16,9 +16,8 @@ class Settings(BaseSettings):
         "http://nvidia-dcgm-exporter.gpu-operator.svc.cluster.local:9400"
     )
     loki_url: str = ""
-    qdrant_url: str = ""
 
-    database_url: str = "postgresql://aiops:aiops@postgres:5432/aiops"
+    database_url: str = "postgresql://aiops:aiops@aiops-postgres:5432/aiops"
 
     # Orchestrator
     auto_enrich_on_alert: bool = True
@@ -26,14 +25,14 @@ class Settings(BaseSettings):
 
     # LLM agent (vLLM OpenAI-compatible API)
     agent_enabled: bool = True
-    llm_api_url: str = "http://aiops-llm.local/"
+    llm_api_url: str = "http://aiops-llm-app.devops-core.svc.cluster.local:8080"
     llm_model: str = "hebrew"
     llm_api_key: str = ""
     openai_api_key: str = ""  # alias fallback
 
     # ArgoCD settings
-    argocd_server: str="http://argo.local"
-    argocd_token: str="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcmdvY2QiLCJzdWIiOiJhdXRvbWF0aW9uLWJvdDphcGlLZXkiLCJuYmYiOjE3OTA0MjE2MzEsImlhdCI6MTc5MDQyMTYzMSwianRpIjoiYjM0OWFkMTktMDA1OS00NGQ0LTgxNTQtYzUzMWQ1N2U2M2IyIn0.pgYw6jv7cA5iEjZuX0Pnw47Wb-g5hOKHz6JgN6-zxoM"
+    argocd_server: str="http://argo-cd-argocd-server.argocd.svc.cluster.local:80"
+    argocd_token: str=""
     argocd_verify_ssl: bool = False
 
     class Config:

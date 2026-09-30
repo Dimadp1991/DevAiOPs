@@ -17,5 +17,5 @@ spec:
   receivers:
     - name: 'aiops-webhook'
       webhookConfigs:
-        - url: 'http://aiops.app.local/api/v1/alerts/webhook'
+        - url: 'http://aiops-backend.aiops-platform.svc.cluster.local:8000/api/v1/alerts/webhook'
           sendResolved: true

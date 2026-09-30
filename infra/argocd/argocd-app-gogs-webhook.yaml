@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'http://gogs.local/gogs/gogs_webhook.git'
+    repoURL: 'http://gogs.gogs.svc.cluster.local:3000/gogs/gogs_webhook.git'
     targetRevision: main
     path: gogs-webhook-chart
   destination:

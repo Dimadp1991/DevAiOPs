@@ -20,6 +20,19 @@ spec:
       {{- if .Values.rbac.create }}
       serviceAccountName: {{ .Values.serviceAccount.name }}
       {{- end }}
+      {{- if .Values.postgres.enabled }}
+      initContainers:
+        - name: wait-for-postgres
+          image: {{ .Values.postgres.image }}
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              until pg_isready -h aiops-postgres.{{ .Values.global.namespace }}.svc.cluster.local -p 5432 -U aiops; do
+                echo "Waiting for PostgreSQL to become available..."
+                sleep 2
+              done
+      {{- end }}
       containers:
         - name: backend
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
@@ -71,6 +84,11 @@ spec:
                   name: {{ .Values.postgres.secretName }}
                   key: DATABASE_URL
             {{- end }}
+            - name: ARGOCD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: argocd-sa-token
+                  key: ARGOCD_TOKEN
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           {{- if .Values.pythonDeps.enabled }}
@@ -82,14 +100,16 @@ spec:
             httpGet:
               path: /api/v1/health
               port: http
-            initialDelaySeconds: 10
+            initialDelaySeconds: 15
             periodSeconds: 30
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /api/v1/ready
               port: http
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
       {{- if .Values.pythonDeps.enabled }}
       volumes:
         - name: python-deps-volume

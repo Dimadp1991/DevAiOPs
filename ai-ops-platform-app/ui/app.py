@@ -4,7 +4,7 @@ from datetime import datetime
 import httpx
 from flask import Flask, abort, render_template, request
 
-API_BASE = os.getenv("AIOPS_API_URL", "http://aiops.app.local")
+API_BASE = os.getenv("AIOPS_API_URL", "http://aiops-llm-app.devops-core.svc.cluster.local:8080")
 
 app = Flask(__name__)
 

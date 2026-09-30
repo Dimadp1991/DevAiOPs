@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'http://gogs.local/gogs/ai-ops-platform-app.git'
+    repoURL: 'http://gogs.gogs.svc.cluster.local:3000/gogs/ai-ops-platform-app.git'
     targetRevision: main
     path: k8s/ai-ops-platform-chart
   destination:

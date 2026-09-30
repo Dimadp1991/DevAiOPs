@@ -103,18 +103,24 @@ crictl rmi --prune
 
 
 On connected network host:
-    docker pull vllm/vllm-openai:v0.6.3
-    docker pull python:3.12-slim
-    docker pull python:3.12-slim
-    docker pull gogs/gogs:latest
-    docker pull docker:27-dind
-    docker pull ghcr.io/project-zot/zot-linux-amd64:latest
-    docker pull jenkins/jenkins:lts-jdk17
-    docker pull gcr.io/kaniko-project/executor:debug
-    docker pull rancher/local-path-provisioner:v0.0.30
-    docker pull nvcr.io/nvidia/gpu-operator:v26.7.0
-    docker pull postgres:latest
-    docker pull nvcr.io/nvidia/k8s-device-plugin:v0.16.2
+$images = @(
+    "vllm/vllm-openai:v0.6.3",
+    "python:3.12-slim",
+    "python:3.11-slim",
+    "postgres:16-alpine",
+    "gogs/gogs:latest",
+    "docker:27-dind",
+    "ghcr.io/project-zot/zot-linux-amd64:latest",
+    "jenkins/jenkins:lts-jdk17",
+    "rancher/local-path-provisioner:v0.0.30",
+    "nvcr.io/nvidia/gpu-operator:v26.7.0",
+    "nvcr.io/nvidia/k8s-device-plugin:v0.16.2"
+)
+
+foreach ($img in $images) {
+    Write-Host "Pulling $img..." -ForegroundColor Cyan
+    docker pull $img
+}
 
 docker save `
     vllm/vllm-openai:v0.6.3 `
@@ -125,8 +131,11 @@ docker save `
     rancher/local-path-provisioner:v0.0.30 `
     nvcr.io/nvidia/gpu-operator:v26.7.0 `
     nvcr.io/nvidia/k8s-device-plugin:v0.16.2 `
-    postgres:latest `
-    -o C:\Users\user\Desktop\TargilBait\infra\aiops_images.tar
+    postgres:16-alpine `
+    python:3.12-slim `
+    python:3.11-slim `
+    docker:27-dind `
+    -o "C:\Users\user\Desktop\TargilBait\infra\aiops_images.tar"
 
 LOCAL WORKING DIR wsl:
 /mnt/c/Users/user/Desktop/TargilBait/infra
@@ -221,6 +230,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 admin
 LfWNQcDrN1eqfM34
 
+ k get secret argocd-sa-token -n aiops-platform -o jsonpath="{.data.ARGOCD_TOKEN}" | base64 -d; echo
 
 API_KEY for ArgoCD:
 
@@ -261,6 +271,16 @@ automation-bot , ARGOCD API  TOKEN
 
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcmdvY2QiLCJzdWIiOiJhdXRvbWF0aW9uLWJvdDphcGlLZXkiLCJuYmYiOjE3OTA0MjAwMTgsImlhdCI6MTc5MDQyMDAxOCwianRpIjoiNzg4NTNhZmEtMDQ0NC00OTIyLWFmMjQtZDk1MDdhYzUxNGE0In0.wy3pCvVb_pIF1cgynAzx9mBpHvQHWM7JC7pk0mKcbUY
 
+  kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-sa-token
+  namespace: aiops-platform
+type: Opaque
+stringData:
+  ARGOCD_TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcmdvY2QiLCJzdWIiOiJhdXRvbWF0aW9uLWJvdDphcGlLZXkiLCJuYmYiOjE3OTA0MjE2MzEsImlhdCI6MTc5MDQyMTYzMSwianRpIjoiYjM0OWFkMTktMDA1OS00NGQ0LTgxNTQtYzUzMWQ1N2U2M2IyIn0.pgYw6jv7cA5iEjZuX0Pnw47Wb-g5hOKHz6JgN6-zxoM"
+EOF
 
 
 Grafana:

@@ -60,6 +60,13 @@ spec:
                 name: argo-cd-argocd-server
                 port:
                   number: 80
+          - path: /metrics
+            pathType: Prefix
+            backend:
+              service:
+                name: argo-cd-argocd-application-controller-metrics
+                port:
+                  number: 8082
 ---
 # 4. Prometheus / Grafana Ingress
 apiVersion: networking.k8s.io/v1

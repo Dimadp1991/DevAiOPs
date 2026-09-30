@@ -20,7 +20,7 @@ class IncidentStore:
         self._db_enabled = False
 
     def initialize(self) -> None:
-        self._db_enabled = init_db() and SessionLocal is not None
+        self._db_enabled = init_db()
 
     @property
     def db_enabled(self) -> bool:

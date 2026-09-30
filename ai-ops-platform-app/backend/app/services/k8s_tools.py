@@ -228,7 +228,7 @@ class K8sTools:
             pod_status="Unknown (mock)",
             restarts=0,
             deployment_ready_replicas="",
-            health_check="Kubernetes API unavailable — enable in-cluster config or set USE_MOCK_PROVIDERS=false",
+            health_check="Kubernetes API unavailable",
             namespace=ns,
         )
 
