@@ -72,7 +72,7 @@ The **AIOps Platform** is an enterprise-grade, autonomous Kubernetes observabili
 │  │  ┌────────────────┐   ┌────────────────┐   ┌────────────────┐   ┌─────────────┐  │  │
 │  │  │  DEVOPS CORE   │   │  OBSERVABILITY │   │   AIOPS APP    │   │  AI MODEL   │  │  │
 │  │  │ ────────────── │   │ ────────────── │   │ ────────────── │   │ ─────────── │  │  │
-│  │  │  • Gogs (Git)  │   │  • Prometheus  │   │  • FastMCP Api │   │  • vLLM Engine │  │  
+│  │  │  • Gogs (Git)  │   │  • Prometheus  │   │  • FastApi     │   │  • vLLM Engine │  │  
 │  │  │  • Zot Reg.    │   │  • Grafana     │   │  • Flask UI    │   │  • Qwen 2.5 │  │  │
 │  │  │  • Jenkins CI  │   │  • DCGM GPU Ex.│   │  •             │   │    (3B/1.5B)│  │  │
 │  │  │  • ArgoCD      │   │  • Alertmgr    │   │                │   │             │  │  │
